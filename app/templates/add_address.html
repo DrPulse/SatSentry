@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Add Address - SatSentry{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-plus-circle me-2"></i>Add Address</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="addressTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="single-tab" data-bs-toggle="tab"
+                                data-bs-target="#single-address" type="button" role="tab">
+                            <i class="fas fa-address-card me-2"></i>Single Address
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="extended-tab" data-bs-toggle="tab"
+                                data-bs-target="#extended-key" type="button" role="tab">
+                            <i class="fas fa-key me-2"></i>Extended Public Key
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="addressTabsContent">
+                    <!-- Single Address Tab -->
+                    <div class="tab-pane fade show active" id="single-address" role="tabpanel">
+                        <form method="post" action="{{ url_for('main.add_address') }}">
+                            <input type="hidden" name="address_type" value="single">
+
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Bitcoin Address</label>
+                                <input type="text" class="form-control" id="address" name="address" required
+                                       placeholder="Enter a Bitcoin address (e.g., bc1q...)">
+                                <div class="form-text">Enter a valid Bitcoin address to monitor.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="label" class="form-label">Label (Optional)</label>
+                                <input type="text" class="form-control" id="label" name="label"
+                                       placeholder="Enter a label for this address">
+                                <div class="form-text">A descriptive label to help you identify this address.</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add Address
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Extended Public Key Tab -->
+                    <div class="tab-pane fade" id="extended-key" role="tabpanel">
+                        <form method="post" action="{{ url_for('main.add_address') }}">
+                            <input type="hidden" name="address_type" value="extended">
+
+                            <div class="mb-3">
+                                <label for="extended_key" class="form-label">Extended Public Key</label>
+                                <input type="text" class="form-control" id="extended_key" name="extended_key" required
+                                       placeholder="Enter an extended public key (xpub/ypub/zpub)">
+                                <div class="form-text">Enter a valid extended public key (xpub, ypub, or zpub).</div>
+                                <div id="key-validation-feedback"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="label" class="form-label">Label (Optional)</label>
+                                <input type="text" class="form-control" id="extended_label" name="label"
+                                       placeholder="Enter a label for this key">
+                                <div class="form-text">A descriptive label to help you identify this key.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="derivation_path" class="form-label">Derivation Path (Optional)</label>
+                                <input type="text" class="form-control" id="derivation_path" name="derivation_path"
+                                       placeholder="e.g., m/84'/0'/0'">
+                                <div class="form-text">
+                                    Custom derivation path. If left empty, a default path will be used based on the key type.
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="start_index" class="form-label">Start Index</label>
+                                        <input type="number" class="form-control" id="start_index" name="start_index"
+                                               value="0" min="0">
+                                        <div class="form-text">Starting index for address derivation.</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="initial_addresses" class="form-label">Initial Addresses</label>
+                                        <input type="number" class="form-control" id="initial_addresses" name="initial_addresses"
+                                               value="{{ settings.initial_addresses }}" min="1">
+                                        <div class="form-text">Number of addresses to generate initially.</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="gap_limit" class="form-label">Gap Limit</label>
+                                        <input type="number" class="form-control" id="gap_limit" name="gap_limit"
+                                               value="{{ settings.gap }}" min="1">
+                                        <div class="form-text">Number of consecutive empty addresses to maintain.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add Extended Key
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if URL has #extended fragment and activate the extended key tab
+        if (window.location.hash === '#extended') {
+            const extendedTab = document.getElementById('extended-tab');
+            if (extendedTab) {
+                extendedTab.click();
+            }
+        }
+        // Validate extended key
+        const extendedKeyInput = document.getElementById('extended_key');
+        const keyValidationFeedback = document.getElementById('key-validation-feedback');
+
+        extendedKeyInput.addEventListener('blur', function() {
+            const key = this.value.trim();
+            if (key) {
+                // Simple client-side validation
+                const isValid = key.startsWith('xpub') || key.startsWith('ypub') || key.startsWith('zpub');
+
+                if (isValid) {
+                    // Validate with server
+                    fetch(`/api/validate_extended_key?key=${encodeURIComponent(key)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.valid) {
+                                keyValidationFeedback.innerHTML = '<div class="alert alert-success mt-2">Valid extended key</div>';
+                            } else {
+                                keyValidationFeedback.innerHTML = '<div class="alert alert-danger mt-2">Invalid extended key format</div>';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            keyValidationFeedback.innerHTML = '<div class="alert alert-warning mt-2">Could not validate key</div>';
+                        });
+                } else {
+                    keyValidationFeedback.innerHTML = '<div class="alert alert-danger mt-2">Invalid extended key format</div>';
+                }
+            } else {
+                keyValidationFeedback.innerHTML = '';
+            }
+        });
+    });
+</script>
+{% endblock %}

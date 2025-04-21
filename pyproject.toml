@@ -1,0 +1,50 @@
+[project]
+name = "SatSentry"
+version = "1.0.0"
+description = "Bitcoin addresses monitoring application using on-chain data"
+readme = "README.md"
+authors = [
+    { name = "DrPulse" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=2.3.0",
+    "requests>=2.31.0",
+    "discord-webhook>=1.3.0",
+    "base58>=2.1.0",
+    "bech32>=1.2.0",
+    "ecdsa>=0.18.0",
+    "click>=8.1.0",
+    "pytest>=7.4.0",
+    "waitress>=3.0.2",
+]
+
+[project.scripts]
+satsentry = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.8.3",
+    "deadcode>=2.3.1",
+    "deptry>=0.23.0",
+    "pytest-cov>=6.1.1",
+    "vulture>=2.14",
+]
+
+[tool.hatch.build]
+include = [
+    "app/**/*.py",
+    "app/main.py"
+]

@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Addresses - SatSentry{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-wallet me-2"></i>Monitored Addresses</h2>
+            <a href="{{ url_for('main.add_address') }}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Add Address
+            </a>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Individual Addresses -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-address-card me-2"></i>Individual Addresses
+            <span class="badge bg-light text-dark ms-2">{{ single_addresses|length }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if single_addresses %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" style="table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%">Address</th>
+                            <th style="width: 15%">Label</th>
+                            <th style="width: 15%">Added Date</th>
+                            <th style="width: 20%">Last Transaction</th>
+                            <th style="width: 15%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for address, data in single_addresses.items() %}
+                            <tr>
+                                <td>
+                                    <code class="address-code">{{ address }}</code>
+                                </td>
+                                <td>{{ data.label }}</td>
+                                <td>{{ data.added_date }}</td>
+                                <td>
+                                    {% if data.last_tx %}
+                                        <a href="{{ mempool_url }}/tx/{{ data.last_tx.txid }}" target="_blank" class="text-decoration-none">
+                                            <span class="badge {% if data.last_tx.direction == 'incoming' %}bg-success{% else %}bg-danger{% endif %}">
+                                                {{ data.last_tx.direction }}
+                                            </span>
+                                        </a>
+                                        <small>{{ data.last_tx.timestamp }}</small>
+                                    {% else %}
+                                        <span class="text-muted">Empty</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary refresh-address" data-address="{{ address }}">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <a href="{{ mempool_url }}/address/{{ address }}" target="_blank" class="btn btn-outline-info">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger delete-address" data-address="{{ address }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No individual addresses added yet.
+                <a href="{{ url_for('main.add_address') }}" class="alert-link">Add one now</a>.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Extended Public Keys -->
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-key me-2"></i>Extended Public Keys
+            <span class="badge bg-light text-dark ms-2">{{ extended_keys|length }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if extended_keys %}
+            <div class="accordion" id="extendedKeysAccordion">
+                {% for key, data in extended_keys.items() %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ loop.index }}">
+                            <button class="accordion-button collapsed p-3" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapse{{ loop.index }}">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <span class="badge bg-secondary me-2">{{ data.key_type }}</span>
+                                        <strong>{{ data.label or 'Unlabeled Key' }}</strong>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted me-3">{{ data.derivation_paths|length }} derivation paths</small>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-danger delete-extended-key" data-key="{{ key }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse"
+                             data-bs-parent="#extendedKeysAccordion">
+                            <div class="accordion-body p-4">
+                                <div class="mb-4">
+                                    <strong>Extended Key:</strong>
+                                    <div class="extended-key-container mt-2">
+                                        <code class="address-code">{{ key }}</code>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <strong>Added Date:</strong> {{ data.added_date }}
+                                </div>
+
+                                <!-- Derivation Paths List -->
+                                <h5 class="mt-4 mb-3">Derivation Paths</h5>
+                                {% set key_index = loop.index %}
+                                <div class="list-group mb-4">
+                                    {% for deriv_path, path_data in data.derivation_paths.items() %}
+                                    {% set path_id = 'path_' ~ key_index ~ '_' ~ loop.index %}
+                                    <div class="list-group-item p-0">
+                                        <div class="card mb-0 border-0">
+                                            <div class="card-header bg-light">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong class="me-2">{{ deriv_path }}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <small class="text-muted me-3">{{ path_data.derived_addresses|length }} addresses</small>
+                                                        <small class="text-muted me-3">Gap Limit: {{ path_data.gap_limit|default(20) }}</small>
+                                                        <button class="btn btn-sm btn-outline-primary update-gap-limit"
+                                                                data-key="{{ key }}" data-path="{{ deriv_path }}" data-gap="{{ path_data.gap_limit|default(20) }}">
+                                                            <i class="fas fa-cog"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
+                                                                data-bs-target="#collapse{{ path_id }}" aria-expanded="false">
+                                                            <i class="fas fa-chevron-down"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger delete-derivation-path"
+                                                                data-key="{{ key }}" data-path="{{ deriv_path }}">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="collapse" id="collapse{{ path_id }}">
+                                            <div class="accordion-body p-4">
+                                                <div class="mb-4">
+                                                    <strong>Indexes:</strong> {{ path_data.start_index }} to {{ path_data.current_index }}
+                                                </div>
+
+                                                <h6 class="mt-4 mb-3">Derived Addresses</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-striped table-hover" style="table-layout: fixed;">
+                                                        <thead>
+                                                            <tr>
+                                                                <th style="width: 15%">Path</th>
+                                                                <th style="width: 45%">Address</th>
+                                                                <th style="width: 25%">Last Transaction</th>
+                                                                <th style="width: 15%">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for addr_path, addr_data in path_data.derived_addresses.items() %}
+                                                                {% set address = addr_data.address if addr_data is mapping else addr_data %}
+                                                                {% set used = addr_data.used if addr_data is mapping else false %}
+                                                                {% set last_tx = addr_data.last_tx if addr_data is mapping else None %}
+                                                                <tr>
+                                                                    <td><code class="p-1">{{ addr_path }}</code></td>
+                                                                    <td><code class="address-code p-1">{{ address }}</code></td>
+                                                                    <td>
+                                                                        {% if last_tx and last_tx.txid and last_tx.timestamp %}
+                                                                            <a href="{{ mempool_url }}/tx/{{ last_tx.txid }}" target="_blank" class="text-decoration-none">
+                                                                                <span class="badge {% if last_tx.direction == 'incoming' %}bg-success{% else %}bg-danger{% endif %}">
+                                                                                    {{ last_tx.direction }}
+                                                                                </span>
+                                                                            </a>
+                                                                            <small>{{ last_tx.timestamp }}</small>
+                                                                        {% else %}
+                                                                            <span class="text-muted">Empty</span>
+                                                                        {% endif %}
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="btn-group btn-group-sm">
+                                                                            <button class="btn btn-outline-primary refresh-address" data-address="{{ address }}">
+                                                                                <i class="fas fa-sync-alt"></i>
+                                                                            </button>
+                                                                            <a href="{{ mempool_url }}/address/{{ address }}" target="_blank" class="btn btn-outline-info">
+                                                                                <i class="fas fa-external-link-alt"></i>
+                                                                            </a>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No extended public keys added yet.
+                <a href="{{ url_for('main.add_address') }}#extended" class="alert-link">Add one now</a>.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Gap Limit Update Modal -->
+<div class="modal fade" id="updateGapLimitModal" tabindex="-1" aria-labelledby="updateGapLimitModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateGapLimitModalLabel">Update Gap Limit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateGapLimitForm">
+                    <input type="hidden" id="update_gap_limit_key" name="key">
+                    <input type="hidden" id="update_gap_limit_path" name="path">
+
+                    <div class="mb-3">
+                        <label for="update_gap_limit" class="form-label">Gap Limit</label>
+                        <input type="number" class="form-control" id="update_gap_limit" name="gap_limit" min="1" required>
+                        <div class="form-text">
+                            Number of consecutive empty addresses to maintain at the end of the derivation chain.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitUpdateGapLimit">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format timestamps - only format elements that actually contain timestamps
+        document.querySelectorAll('td small').forEach(function(element) {
+            const timestamp = element.textContent.trim();
+            if (timestamp && timestamp !== 'None' && timestamp !== 'Empty') {
+                try {
+                    const date = new Date(timestamp);
+                    if (!isNaN(date.getTime())) {  // Check if date is valid
+                        element.textContent = date.toLocaleString();
+                    }
+                } catch (e) {
+                    console.error('Error formatting timestamp:', e);
+                }
+            }
+        });
+
+        // Delete address
+        document.querySelectorAll('.delete-address').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const address = this.getAttribute('data-address');
+                if (confirm(`Are you sure you want to delete address ${address}?`)) {
+                    fetch(`/api/delete_address/${address}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(`Error: ${data.error}`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while deleting the address.');
+                        });
+                }
+            });
+        });
+
+        // Delete extended key
+        document.querySelectorAll('.delete-extended-key').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const key = this.getAttribute('data-key');
+                if (confirm(`Are you sure you want to delete this extended key and all its derivation paths?`)) {
+                    fetch(`/api/delete_extended_key/${encodeURIComponent(key)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(`Error: ${data.error}`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while deleting the extended key.');
+                        });
+                }
+            });
+        });
+
+        // Delete derivation path
+        document.querySelectorAll('.delete-derivation-path').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const key = this.getAttribute('data-key');
+                const path = this.getAttribute('data-path');
+                if (confirm(`Are you sure you want to delete the derivation path ${path} and all its addresses?`)) {
+                    fetch(`/api/delete_extended_key_derivation_path/${encodeURIComponent(key)}/${encodeURIComponent(path)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(`Error: ${data.error}`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while deleting the derivation path.');
+                        });
+                }
+            });
+        });
+
+        // Refresh address
+        document.querySelectorAll('.refresh-address').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const address = this.getAttribute('data-address');
+                const originalHtml = this.innerHTML;
+
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                this.disabled = true;
+
+                fetch(`/api/refresh_address/${address}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        this.innerHTML = originalHtml;
+                        this.disabled = false;
+
+                        if (data.success) {
+                            if (data.result.new_transactions) {
+                                alert(`New transaction found for address ${address}!`);
+                            } else {
+                                alert(`No new transactions for address ${address}.`);
+                            }
+                            location.reload();
+                        } else {
+                            alert(`Error: ${data.error}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        this.innerHTML = originalHtml;
+                        this.disabled = false;
+                        alert('An error occurred while refreshing the address.');
+                    });
+            });
+        });
+
+        // Update gap limit
+        document.querySelectorAll('.update-gap-limit').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const key = this.getAttribute('data-key');
+                const path = this.getAttribute('data-path');
+                const currentGap = this.getAttribute('data-gap');
+
+                // Set values in the modal
+                document.getElementById('update_gap_limit_key').value = key;
+                document.getElementById('update_gap_limit_path').value = path;
+                document.getElementById('update_gap_limit').value = currentGap;
+
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('updateGapLimitModal'));
+                modal.show();
+            });
+        });
+
+        // Handle form submission
+        document.getElementById('submitUpdateGapLimit').addEventListener('click', function() {
+            const key = document.getElementById('update_gap_limit_key').value;
+            const path = document.getElementById('update_gap_limit_path').value;
+            const gapLimit = parseInt(document.getElementById('update_gap_limit').value);
+
+            if (gapLimit < 1) {
+                alert('Gap limit must be at least 1');
+                return;
+            }
+
+            // Show loading state
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            this.disabled = true;
+
+            // Send the update request
+            fetch(`/api/update_gap_limit/${encodeURIComponent(key)}/${encodeURIComponent(path)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    gap_limit: gapLimit
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button state
+                this.innerHTML = 'Update';
+                this.disabled = false;
+
+                if (data.success) {
+                    // Close the modal
+                    bootstrap.Modal.getInstance(document.getElementById('updateGapLimitModal')).hide();
+
+                    // Reload the page to show the updated gap limit
+                    location.reload();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+
+                // Reset button state
+                this.innerHTML = 'Update';
+                this.disabled = false;
+
+                alert('An error occurred while updating the gap limit.');
+            });
+        });
+    });
+</script>
+{% endblock %}

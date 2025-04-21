@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SatSentry{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tachometer-alt me-2"></i>Monitoring Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div id="status-card" class="card h-100 {% if status.running %}{% if status.paused %}bg-warning{% else %}bg-success{% endif %}{% else %}bg-danger{% endif %} text-white" style="cursor: pointer;">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Status</h5>
+                                <p class="card-text display-6">
+                                    {% if status.running %}
+                                        {% if status.paused %}
+                                            <i class="fas fa-pause-circle"></i> Paused
+                                        {% else %}
+                                            <i class="fas fa-check-circle"></i> Running
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="fas fa-times-circle"></i> Stopped
+                                    {% endif %}
+                                </p>
+                                <small class="text-white-50">Click to pause/resume</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Check Interval</h5>
+                                <p class="card-text display-6">
+                                    {% if status.check_interval < 60 %}
+                                        {{ status.check_interval }} sec
+                                    {% else %}
+                                        {{ status.check_interval // 60 }} min
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Last Check</h5>
+                                <p class="card-text">
+                                    {% if status.last_check %}
+                                        <span id="last-check-time">
+                                            {{ status.last_check }}
+                                        </span>
+                                    {% else %}
+                                        Never
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">Next Check</h5>
+                                <p class="card-text">
+                                    {% if status.next_check %}
+                                        <span id="next-check-countdown" data-seconds="{{ status.seconds_to_next_check }}">
+                                            {{ status.seconds_to_next_check // 60 }} min {{ status.seconds_to_next_check % 60 }} sec
+                                        </span>
+                                        <button id="refresh-now-btn" class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="fas fa-sync-alt me-1"></i>Refresh Now
+                                        </button>
+                                    {% else %}
+                                        Unknown
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-wallet me-2"></i>Monitored Addresses
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <a href="{{ url_for('main.addresses') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-list me-2"></i>View Addresses
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>Add New Address
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <a href="{{ url_for('main.add_address') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-plus me-2"></i>Add Address
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Mempool API</h6>
+                        <p>
+                            {% if settings.use_self_hosted %}
+                                <span class="badge bg-info">Self-hosted</span>
+                                {{ settings.node_url }}:{{ settings.node_port }}
+                            {% else %}
+                                <span class="badge bg-primary">Public API</span>
+                                mempool.space
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h6>Discord Webhook</h6>
+                        <p>
+                            {% if settings.discord_webhook %}
+                                <span class="badge bg-success">Configured</span>
+                            {% else %}
+                                <span class="badge bg-danger">Not Configured</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('main.settings') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-edit me-2"></i>Edit Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Update UI based on scheduler status
+    function updateUI(status) {
+        const countdownElement = document.getElementById('next-check-countdown');
+        if (countdownElement) {
+            // Check if currently checking addresses
+            if (status.checking) {
+                countdownElement.textContent = 'Refreshing...';
+                countdownElement.setAttribute('data-seconds', '0');
+
+                // Hide refresh button during check
+                const refreshButton = document.getElementById('refresh-now-btn');
+                if (refreshButton) {
+                    refreshButton.style.display = 'none';
+                }
+            } else if (status.paused) {
+                // Special handling for paused state
+                // Still show the countdown but with a paused indicator
+                const minutes = Math.floor(status.seconds_to_next_check / 60);
+                const remainingSeconds = status.seconds_to_next_check % 60;
+                countdownElement.textContent = `⏸️ ${minutes} min ${remainingSeconds} sec`;
+                countdownElement.setAttribute('data-seconds', status.seconds_to_next_check);
+                countdownElement.classList.add('text-warning');
+
+                // Show refresh button
+                const refreshButton = document.getElementById('refresh-now-btn');
+                if (refreshButton) {
+                    refreshButton.style.display = 'inline-block';
+                }
+            } else if (status.next_check) {
+                // Normal countdown, use the seconds to next check
+                countdownElement.setAttribute('data-seconds', status.seconds_to_next_check);
+                const minutes = Math.floor(status.seconds_to_next_check / 60);
+                const remainingSeconds = status.seconds_to_next_check % 60;
+                countdownElement.textContent = `${minutes} min ${remainingSeconds} sec`;
+                countdownElement.classList.remove('text-warning');
+
+                // Show refresh button
+                const refreshButton = document.getElementById('refresh-now-btn');
+                if (refreshButton) {
+                    refreshButton.style.display = 'inline-block';
+                }
+            } else {
+                countdownElement.textContent = 'Unknown';
+                countdownElement.classList.remove('text-warning');
+
+                // Hide refresh button
+                const refreshButton = document.getElementById('refresh-now-btn');
+                if (refreshButton) {
+                    refreshButton.style.display = 'none';
+                }
+            }
+        }
+
+        // Update last check time
+        const lastCheckElement = document.getElementById('last-check-time');
+        if (lastCheckElement && status.last_check) {
+            lastCheckElement.textContent = status.last_check;
+        }
+
+        // Update status indicator
+        const statusCard = document.getElementById('status-card');
+        if (statusCard) {
+            // Remove all background classes first
+            statusCard.classList.remove('bg-success', 'bg-warning', 'bg-danger');
+
+            if (status.running) {
+                if (status.paused) {
+                    // Paused state
+                    statusCard.classList.add('bg-warning');
+                    statusCard.querySelector('.card-text').innerHTML = '<i class="fas fa-pause-circle"></i> Paused';
+                } else {
+                    // Running state
+                    statusCard.classList.add('bg-success');
+                    statusCard.querySelector('.card-text').innerHTML = '<i class="fas fa-check-circle"></i> Running';
+                }
+            } else {
+                // Stopped state
+                statusCard.classList.add('bg-danger');
+                statusCard.querySelector('.card-text').innerHTML = '<i class="fas fa-times-circle"></i> Stopped';
+            }
+        }
+
+        // Update check interval
+        const intervalElement = document.querySelector('.col-md-3:nth-child(2) .card-text');
+        if (intervalElement) {
+            if (status.check_interval < 60) {
+                intervalElement.textContent = `${status.check_interval} sec`;
+            } else {
+                intervalElement.textContent = `${Math.floor(status.check_interval / 60)} min`;
+            }
+        }
+    }
+
+    // No need for timestamp formatting anymore as it's done on the server
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize status card with current status
+        const initialStatus = {
+            running: {{ 'true' if status.running else 'false' }},
+            paused: {{ 'true' if status.paused else 'false' }},
+            checking: {{ 'true' if status.checking else 'false' }},
+            last_check: "{{ status.last_check }}",
+            next_check: "{{ status.next_check }}",
+            check_interval: {{ status.check_interval }},
+            seconds_to_next_check: {{ status.seconds_to_next_check }}
+        };
+        updateUI(initialStatus);
+
+        // Set up Server-Sent Events connection
+        const evtSource = new EventSource('/api/scheduler-events');
+
+        // Handle incoming events
+        evtSource.onmessage = function(event) {
+            const status = JSON.parse(event.data);
+            updateUI(status);
+        };
+
+        // Handle connection errors
+        evtSource.onerror = function(err) {
+            console.error('EventSource failed:', err);
+            // Fallback to polling if SSE fails
+            if (evtSource.readyState === 2) { // CLOSED
+                evtSource.close();
+                console.log('Falling back to polling');
+                // Poll every 2 seconds as fallback
+                setInterval(function() {
+                    fetch('/api/scheduler-status')
+                        .then(response => response.json())
+                        .then(status => updateUI(status))
+                        .catch(error => console.error('Error fetching status:', error));
+                }, 2000);
+            }
+        };
+
+        // Add status card click handler for pause/resume
+        const statusCard = document.getElementById('status-card');
+        if (statusCard) {
+            statusCard.addEventListener('click', function() {
+                const status = this.classList.contains('bg-success') ? 'running' :
+                              this.classList.contains('bg-warning') ? 'paused' : 'stopped';
+
+                // Only handle pause/resume if the scheduler is running
+                if (status === 'running' || status === 'paused') {
+                    // Show loading state
+                    const originalText = this.querySelector('.card-text').innerHTML;
+                    this.querySelector('.card-text').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+                    // Determine which action to take
+                    const endpoint = status === 'running' ? '/api/pause-scheduler' : '/api/resume-scheduler';
+
+                    // Send the request
+                    fetch(endpoint, { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Update UI immediately with the returned status
+                            if (data.success && data.status) {
+                                updateUI(data.status);
+                            } else {
+                                // Restore original text if there was an error
+                                this.querySelector('.card-text').innerHTML = originalText;
+                                alert(`Error: ${data.message || 'Unknown error'}`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating scheduler status:', error);
+                            // Restore original text
+                            this.querySelector('.card-text').innerHTML = originalText;
+                            alert('An error occurred while updating the scheduler status.');
+                        });
+                }
+            });
+        }
+
+        // Add refresh button handler
+        const refreshButton = document.getElementById('refresh-now-btn');
+        if (refreshButton) {
+            refreshButton.addEventListener('click', function() {
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
+
+                // Trigger a manual check via API
+                fetch('/api/trigger-check', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update UI immediately with the returned status
+                        if (data.success && data.status) {
+                            updateUI(data.status);
+                        }
+
+                        // Re-enable button after a short delay
+                        setTimeout(() => {
+                            this.disabled = false;
+                            this.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Refresh Now';
+                        }, 2000);
+                    })
+                    .catch(error => {
+                        console.error('Error triggering check:', error);
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Refresh Now';
+                    });
+            });
+        }
+    });
+</script>
+{% endblock %}

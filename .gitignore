@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.coverage
+
+# Virtual environments
+.venv
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# tools
+.ruff_cache
+
+# Application specific
+logs/
+*.log
+docs/
+*.json

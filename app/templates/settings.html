@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - SatSentry{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-cog me-2"></i>Settings</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sliders-h me-2"></i>Configuration Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('main.settings') }}">
+                    <!-- Check Interval -->
+                    <div class="mb-4">
+                        <h5>Check Interval</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="check_interval" class="form-label">Check Interval (seconds)</label>
+                                    <input type="number" class="form-control" id="check_interval" name="check_interval"
+                                           value="{{ settings.check_interval }}" min="30" required>
+                                    <div class="form-text">
+                                        How often to check for new transactions. Minimum 30 seconds for self-hosted, 300 seconds (5 minutes) for public API.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Mempool API -->
+                    <div class="mb-4">
+                        <h5>Mempool API</h5>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="use_self_hosted" name="use_self_hosted"
+                                       {% if settings.use_self_hosted %}checked{% endif %}>
+                                <label class="form-check-label" for="use_self_hosted">Use Self-Hosted Mempool Instance</label>
+                            </div>
+                            <div class="form-text">
+                                Toggle between public mempool.space API and your self-hosted mempool instance.
+                            </div>
+                        </div>
+
+                        <div id="self-hosted-settings" class="{% if not settings.use_self_hosted %}d-none{% endif %}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="node_url" class="form-label">Mempool URL</label>
+                                        <input type="text" class="form-control" id="node_url" name="node_url"
+                                               value="{{ settings.node_url }}" placeholder="e.g., localhost or 192.168.1.100">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="node_port" class="form-label">Port</label>
+                                        <input type="number" class="form-control" id="node_port" name="node_port"
+                                               value="{{ settings.node_port }}" placeholder="e.g., 3000">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <button type="button" id="test-connection" class="btn btn-outline-primary">
+                                    <i class="fas fa-plug me-2"></i>Test Connection
+                                </button>
+                                <span id="connection-result" class="ms-3"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Discord Webhook -->
+                    <div class="mb-4">
+                        <h5>Notifications</h5>
+                        <div class="mb-3">
+                            <label for="discord_webhook" class="form-label">Discord Webhook URL</label>
+                            <input type="text" class="form-control" id="discord_webhook" name="discord_webhook"
+                                   value="{{ settings.discord_webhook }}" placeholder="https://discord.com/api/webhooks/...">
+                            <div class="form-text">
+                                Discord webhook URL for transaction notifications. Leave empty to disable notifications.
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Extended Key Settings -->
+                    <div class="mb-4">
+                        <h5>Extended Key Settings</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="gap" class="form-label">Default Gap Limit</label>
+                                    <input type="number" class="form-control" id="gap" name="gap"
+                                           value="{{ settings.gap }}" min="1" required>
+                                    <div class="form-text">
+                                        Number of consecutive empty addresses to maintain at the end of the derivation chain.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="initial_addresses" class="form-label">Initial Addresses</label>
+                                    <input type="number" class="form-control" id="initial_addresses" name="initial_addresses"
+                                           value="{{ settings.initial_addresses }}" min="1" required>
+                                    <div class="form-text">
+                                        Number of addresses to generate initially when adding an extended key.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form elements
+        const settingsForm = document.querySelector('form');
+        const useSelfHostedCheckbox = document.getElementById('use_self_hosted');
+        const selfHostedSettings = document.getElementById('self-hosted-settings');
+        const checkIntervalInput = document.getElementById('check_interval');
+        const saveButton = document.querySelector('button[type="submit"]');
+        const testConnectionButton = document.getElementById('test-connection');
+        const connectionResult = document.getElementById('connection-result');
+        const nodeUrlInput = document.getElementById('node_url');
+        const nodePortInput = document.getElementById('node_port');
+
+        // Connection test state
+        let connectionTestPassed = false;
+        let connectionTestPerformed = false;
+
+        // Function to update save button state
+        function updateSaveButtonState() {
+            if (useSelfHostedCheckbox.checked) {
+                // If self-hosted is checked, require a successful connection test
+                saveButton.disabled = !connectionTestPassed;
+
+                if (!connectionTestPassed && connectionTestPerformed) {
+                    // Show warning if test was performed but failed
+                    if (!document.getElementById('connection-warning')) {
+                        const warning = document.createElement('div');
+                        warning.id = 'connection-warning';
+                        warning.className = 'alert alert-warning mt-3';
+                        warning.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>You must successfully test the connection before saving self-hosted settings.';
+                        saveButton.parentNode.insertBefore(warning, saveButton.nextSibling);
+                    }
+                } else {
+                    // Remove warning if test passed or not performed yet
+                    const warning = document.getElementById('connection-warning');
+                    if (warning) {
+                        warning.remove();
+                    }
+                }
+            } else {
+                // If using public API, no connection test required
+                saveButton.disabled = false;
+
+                // Remove warning if exists
+                const warning = document.getElementById('connection-warning');
+                if (warning) {
+                    warning.remove();
+                }
+
+                // Reset connection test state
+                connectionTestPassed = false;
+                connectionTestPerformed = false;
+            }
+        }
+
+        // Toggle self-hosted settings
+        useSelfHostedCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                selfHostedSettings.classList.remove('d-none');
+                // Update min check interval for self-hosted
+                checkIntervalInput.min = 30;
+                if (checkIntervalInput.value < 30) {
+                    checkIntervalInput.value = 30;
+                }
+            } else {
+                selfHostedSettings.classList.add('d-none');
+                // Update min check interval for public API
+                checkIntervalInput.min = 300;
+                if (checkIntervalInput.value < 300) {
+                    checkIntervalInput.value = 300;
+                }
+            }
+
+            // Reset connection test state when toggling
+            connectionTestPassed = false;
+            connectionTestPerformed = false;
+            connectionResult.innerHTML = '';
+
+            // Update save button state
+            updateSaveButtonState();
+        });
+
+        // Test connection
+        testConnectionButton.addEventListener('click', function() {
+            const url = nodeUrlInput.value.trim();
+            const port = nodePortInput.value.trim();
+
+            if (!url || !port) {
+                connectionResult.innerHTML = '<span class="text-danger">Please enter URL and port</span>';
+                connectionTestPerformed = true;
+                connectionTestPassed = false;
+                updateSaveButtonState();
+                return;
+            }
+
+            connectionResult.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin me-2"></i>Testing connection...</span>';
+
+            // Call the API endpoint to test the connection
+            fetch(`/api/test_connection?use_self_hosted=true&node_url=${encodeURIComponent(url)}&node_port=${encodeURIComponent(port)}`)
+                .then(response => response.json())
+                .then(data => {
+                    connectionTestPerformed = true;
+
+                    if (data.success) {
+                        connectionResult.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-2"></i>${data.message}</span>`;
+                        connectionTestPassed = true;
+                    } else {
+                        connectionResult.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-2"></i>${data.message}</span>`;
+                        connectionTestPassed = false;
+                    }
+
+                    updateSaveButtonState();
+                })
+                .catch(error => {
+                    connectionTestPerformed = true;
+                    connectionTestPassed = false;
+                    connectionResult.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-2"></i>Error testing connection</span>';
+                    console.error('Error:', error);
+
+                    updateSaveButtonState();
+                });
+        });
+
+        // Monitor changes to URL and port inputs
+        nodeUrlInput.addEventListener('change', function() {
+            // Reset connection test state when URL changes
+            connectionTestPassed = false;
+            connectionTestPerformed = false;
+            connectionResult.innerHTML = '';
+            updateSaveButtonState();
+        });
+
+        nodePortInput.addEventListener('change', function() {
+            // Reset connection test state when port changes
+            connectionTestPassed = false;
+            connectionTestPerformed = false;
+            connectionResult.innerHTML = '';
+            updateSaveButtonState();
+        });
+
+        // Initial update of save button state
+        updateSaveButtonState();
+    });
+</script>
+{% endblock %}

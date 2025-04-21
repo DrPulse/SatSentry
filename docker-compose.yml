@@ -1,0 +1,28 @@
+services:
+  satsentry:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: satsentry:latest
+    container_name: satsentry
+    restart: unless-stopped
+    ports:
+      - 5000:5000
+    volumes:
+      - data:/app/data
+      - logs:/app/logs
+    networks:
+      - satsentry
+    # If you need to connect to a local mempool instance on the host
+    # Uncomment the following lines
+    # network_mode: "host"
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+networks:
+  satsentry:
+    driver: bridge
+
+volumes:
+  data:
+  logs:
