@@ -1,6 +1,6 @@
 [project]
 name = "SatSentry"
-version = "1.0.0"
+version = "0.1.0"
 description = "Bitcoin addresses monitoring application using on-chain data"
 readme = "README.md"
 authors = [
