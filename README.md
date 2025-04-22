@@ -8,6 +8,9 @@ A comprehensive software solution that provides real-time tracking of Bitcoin ad
 > [!IMPORTANT]
 > Derivation of addresses from extended public keys is also custom and may contain bugs. Also, it doesn't cover all addresses types.
 
+> [!IMPORTANT]
+> I hope I shouldn't have to write this but any address shown in the screenshots is not mine but taken from the internet.
+
 ## Features
 
 - Monitor individual Bitcoin addresses for transactions
@@ -28,7 +31,7 @@ A comprehensive software solution that provides real-time tracking of Bitcoin ad
 
 ```bash
 git clone https://github.com/DrPulse/satsentry.git
-cd sat-sentry
+cd satsentry
 ```
 
 ### Using uv
