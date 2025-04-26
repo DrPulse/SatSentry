@@ -53,19 +53,13 @@ python3 main.py
 1. Create the directories for BitSentry data
 
     ```bash
-    mkdir -p ~/.sentry/{data,logs}
+    mkdir -p ~/.satsentry/{data,logs}
     ```
 
-2. Build the Docker image
+2. Run the Docker container
 
     ```bash
-    docker build -t satsentry:latest .
-    ```
-
-3. Run the Docker container
-
-    ```bash
-    docker run --rm -p 5000:5000 -v ~/.sentry/data:/app/data -v ~/.sentry/logs:/app/logs satsentry:latest
+    docker run --rm -p 5000:5000 -v ~/.satsentry/data:/app/data -v ~/.satsentry/logs:/app/logs ghcr.io/drpulse/satsentry:latest
     ```
 
 Access the web interface at <http://localhost:5000>
@@ -102,7 +96,7 @@ uv run pytest
 
 ## Roadmap
 
-- [ ] Use Github Actions for building the docker image and pushing it to a public registry
+- [x] Use Github Actions for building the docker image and pushing it to a public registry
 - [ ] Add other notifications channels ?
 - [ ] Refactor the population of addresses from extended public keys to be more efficient and easier to maintain
 - [ ] Better test coverage with better cases
