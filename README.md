@@ -50,7 +50,7 @@ python3 main.py
 
 ### Using Docker
 
-1. Create the directories for BitSentry data
+1. Create the directories for SatSentry data
 
     ```bash
     mkdir -p ~/.satsentry/{data,logs}
